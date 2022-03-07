@@ -2,6 +2,7 @@
 
 #include "ray.h"
 #include "texture.h"
+#include "hittable.h"
 
 #include <memory>
 

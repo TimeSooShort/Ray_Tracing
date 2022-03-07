@@ -6,6 +6,7 @@
 class camera
 {
 public:
+	camera() = default;
 	// lookfrom:摄像机位置，lookat：摄像机对准的点，vup 世界坐标中的上方，vfov：竖直方向视角域， aspect_ratio：宽高比
 	// aperture: 光圈，focus_dist：聚焦平面(focus plane),该平面上的所有东西都处于完美的聚焦状态
 	camera(point3 lookfrom, point3 lookat, Vec3 vup, double vfov, double aspect_ratio, 
@@ -33,6 +34,10 @@ public:
 		time1 = tm1;
 	}
 
+	camera(const camera& cam);
+	camera& operator=(const camera& cam);
+	virtual ~camera() {}
+
 	ray get_ray(double s, double t) const
 	{
 		//return ray(origin, lower_left_corner+s*horizontal+t*vertical-origin);
@@ -52,6 +57,26 @@ public:
 	Vec3 horizontal; // 水平正向向量，大小等于视窗宽度，用来移动射线
 	Vec3 vertical; // 竖直正向向量，大小等于视窗高度，用来移动射线
 	Vec3 u, v, w; // 相机坐标系
-	double lens_radius; // 光圈
-	double time0, time1; // 摄像机快门的开关时间，会在这个时间间隔内随机选取某刻发出射线
+	double lens_radius{}; // 光圈
+	double time0{}, time1{}; // 摄像机快门的开关时间，会在这个时间间隔内随机选取某刻发出射线
 };
+
+camera::camera(const camera& cam) : origin(cam.origin), lower_left_corner(cam.lower_left_corner), horizontal(cam.horizontal),
+	vertical(cam.vertical), u(cam.u), v(cam.v), w(cam.w), lens_radius(cam.lens_radius), time0(cam.time0), time1(cam.time1)
+{}
+
+camera& camera::operator=(const camera& cam)
+{
+	origin = cam.origin;
+	lower_left_corner = cam.lower_left_corner;
+	horizontal = cam.horizontal;
+	vertical = cam.vertical;
+	u = cam.u;
+	v = cam.v;
+	w = cam.w;
+	lens_radius = cam.lens_radius;
+	time0 = cam.time0;
+	time1 = cam.time1;
+
+	return *this;
+}

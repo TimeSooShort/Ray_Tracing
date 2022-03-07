@@ -106,7 +106,15 @@ inline Vec3 unit_vector(Vec3 v)
 // 这样就有无数个交点p到该点的向量，模仿射线碰触物体表面p点后的反射向量
 inline Vec3 random_in_unit_sphere()
 {
-	while (true)
+	double theta = acos(2 * random_double() - 1);
+	double phi = 2 * random_double() * PI;
+
+	double x = cos(phi) * sin(theta);
+	double z = sin(phi) * sin(theta);
+	double y = cos(theta);
+
+	return { x, y, z };
+	/*while (true)
 	{
 		auto p = Vec3::random(-1, 1);
 		if (p.length_squared() >= 1)
@@ -114,13 +122,14 @@ inline Vec3 random_in_unit_sphere()
 			continue;
 		}
 		return p;
-	}
+	}*/
 }
 
 // Lambertian Reflection
 inline Vec3 random_unit_vector()
 {
-	return unit_vector(random_in_unit_sphere());
+	return random_in_unit_sphere();
+	//return unit_vector(random_in_unit_sphere());
 }
 
 // 返回的随机向量和法线保持同一方向

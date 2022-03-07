@@ -6,7 +6,7 @@
 // Constants
 
 constexpr double infinity = std::numeric_limits<double>::infinity();
-constexpr double PI = 3.1415926535897932385;
+constexpr double PI = 3.14159265358979323846;
 // image variable
 constexpr auto aspect_ratio = 16.0 / 9.0; // 16.0 / 9.0
 constexpr int image_width = 400;
@@ -28,6 +28,12 @@ static std::mt19937 generator(dev());
 inline double degrees_to_radians(double degrees)
 {
 	return degrees * PI / 180.0;
+}
+
+inline double random_double(double min, double max)
+{
+	std::uniform_real_distribution<double> distribution(min, max);
+	return distribution(generator);
 }
 
 inline double random_double()

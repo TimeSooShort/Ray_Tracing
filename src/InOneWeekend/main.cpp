@@ -7,6 +7,8 @@
 #include "moving_sphere.h"
 #include "bvh_node.h"
 #include "texture.h"
+#include "rtw_stb_image.h"
+#include "filesystemUtil.h"
 
 #include <iostream>
 #include <chrono>
@@ -14,16 +16,26 @@
 using namespace std::chrono;
 using Clock = std::chrono::steady_clock;
 
+enum class SELECT_WHICH_RUN
+{
+	RANDOM_SCENE, TWO_SPHERES, EARTH_PERLIN_SPHERES
+};
+
 color ray_color(const ray& r, const hittable& obj, int depth);
 //double hit_sphere(const point3& center, double radius, const ray& r);
 hittable_list random_scene();
-inline void print_program_spend_time(std::chrono::system_clock::time_point start);
+inline void print_program_spend_time(std::chrono::steady_clock::time_point start);
+camera select(const SELECT_WHICH_RUN& s, hittable_list& world);
+inline hittable_list two_spheres();
+inline hittable_list earth_perlin_spheres();
+
 
 int main()
 {
 	auto program_start = Clock::now();
 	// hit objects
-	hittable_list objs = random_scene();
+	 hittable_list objs;
+	//hittable_list objs = random_scene();
 	//auto material_ground = std::make_shared<lambertian>(color(0.8, 0.8, 0.0));
 	//auto material_center = std::make_shared<lambertian>(color(0.1, 0.2, 0.5));
 	//auto material_left = std::make_shared<dielectric>(1.5);
@@ -51,13 +63,15 @@ int main()
 	// 放大; vfov值的改变影响视窗的大小，即看到东西的多少，而最终图片大小未变，效果就相当于放大
 	//camera cam(point3(-2, 2, 1), point3(0, 0, -1), Vec3(0, 1, 0), 20, aspect_ratio); 
 
-	point3 lookfrom(13, 2, 3);
+	/*point3 lookfrom(13, 2, 3);
 	point3 lookat(0, 0, 0);
 	Vec3 vup(0, 1, 0);
 	auto dist_to_focus = 10.0;
 	auto aperture = 0.1;
 
-	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
+	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);*/
+
+	camera cam = select(SELECT_WHICH_RUN::EARTH_PERLIN_SPHERES, objs);
 
 	// render
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -135,10 +149,71 @@ color ray_color(const ray& r, const hittable& obj, int depth)
 	return (1 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
-hittable_list random_scene()
+camera select(const SELECT_WHICH_RUN& s, hittable_list& world)
+{
+	point3 lookfrom;
+	point3 lookat;
+	auto vfov = 40.0;
+	auto aperture = 0.0;
+
+	switch (s)
+	{
+	case SELECT_WHICH_RUN::RANDOM_SCENE:
+		world = random_scene();
+		lookfrom = point3(13, 2, 3);
+		lookat = point3(0, 0, 0);
+		vfov = 20.0;
+		aperture = 0.1;
+		break;
+	case SELECT_WHICH_RUN::TWO_SPHERES:
+		world = two_spheres();
+		lookfrom = point3(13, 2, 3);
+		lookat = point3(0, 0, 0);
+		vfov = 20.0;
+		break;
+	case SELECT_WHICH_RUN::EARTH_PERLIN_SPHERES:
+		world = earth_perlin_spheres();
+		lookfrom = point3(13, 2, 3);
+		lookat = point3(0, 0, 0);
+		vfov = 35.0;
+		break;
+	default:
+		break;
+	}
+
+	Vec3 vup(0, 1, 0);
+	auto dist_to_focus = 10.0;
+	camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
+	return cam;
+}
+
+inline hittable_list two_spheres()
+{
+	hittable_list objs;
+	auto checker = std::make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+
+	objs.add(std::make_shared<sphere>(point3(0, -10, 0), 10, std::make_shared<lambertian>(checker)));
+	objs.add(std::make_shared<sphere>(point3(0, 10, 0), 10, std::make_shared<lambertian>(checker)));
+
+	return objs;
+}
+
+inline hittable_list earth_perlin_spheres()
+{
+	hittable_list objs;
+	auto earth = std::make_shared<image_texture>(FileSystemUtil::getPath("/earthmap.jpg").c_str());
+	auto noise = std::make_shared<marble_texture>();
+
+	objs.add(std::make_shared<sphere>(point3(0, -1000, 0), 1000, std::make_shared<lambertian>(noise)));
+	objs.add(std::make_shared<sphere>(point3(0, 2, 5), 2, std::make_shared<lambertian>(noise)));
+	objs.add(std::make_shared<sphere>(point3(0, 2, 0), 2, std::make_shared<lambertian>(earth)));
+
+	return objs;
+}
+
+inline hittable_list random_scene()
 {
 	hittable_list world;
-
 	auto checker = std::make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
 	world.add(std::make_shared<sphere>(point3(0, -1000, 0), 1000, std::make_shared<lambertian>(checker)));
 

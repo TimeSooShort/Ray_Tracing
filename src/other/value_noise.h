@@ -33,6 +33,8 @@ class ValueNoise
 public:
 	ValueNoise();
 
+	virtual ~ValueNoise() {}
+
 	double eval(Vec3& p) const;
 
 	// 关于噪声特性:当你缩小足够大的范围时，噪音会变得非常小，以至于重复几乎不可见;
