@@ -24,5 +24,5 @@ public:
 private:
 	point3 orig; // 射线起点坐标
 	Vec3 dir; // 射线方向
-	double tm; // 给射线加上时间
+	double tm{}; // 给射线加上时间
 };

@@ -7,7 +7,7 @@
 class Vec3
 {
 public:
-	Vec3() : e{0, 0, 0} {}
+	Vec3() : e{0.0, 0.0, 0.0} {}
 	Vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
 	Vec3(const Vec3& v) : e{ v.x(), v.y(), v.z() } {}
 

@@ -9,6 +9,7 @@
 #include "texture.h"
 #include "rtw_stb_image.h"
 #include "filesystemUtil.h"
+#include "aarect.h"
 
 #include <iostream>
 #include <chrono>
@@ -18,21 +19,23 @@ using Clock = std::chrono::steady_clock;
 
 enum class SELECT_WHICH_RUN
 {
-	RANDOM_SCENE, TWO_SPHERES, EARTH_PERLIN_SPHERES
+	RANDOM_SCENE, TWO_SPHERES, EARTH_PERLIN_SPHERES, CORNEL_BOX
 };
 
-color ray_color(const ray& r, const hittable& obj, int depth);
+color ray_color(const ray& r, const color& background, const hittable& obj, int depth);
 //double hit_sphere(const point3& center, double radius, const ray& r);
 hittable_list random_scene();
 inline void print_program_spend_time(std::chrono::steady_clock::time_point start);
-camera select(const SELECT_WHICH_RUN& s, hittable_list& world);
+camera select(const SELECT_WHICH_RUN& s, hittable_list& world, color& background);
 inline hittable_list two_spheres();
 inline hittable_list earth_perlin_spheres();
+inline hittable_list cornell_box();
 
 
 int main()
 {
 	auto program_start = Clock::now();
+	color background;
 	// hit objects
 	 hittable_list objs;
 	//hittable_list objs = random_scene();
@@ -71,7 +74,7 @@ int main()
 
 	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);*/
 
-	camera cam = select(SELECT_WHICH_RUN::EARTH_PERLIN_SPHERES, objs);
+	camera cam = select(SELECT_WHICH_RUN::CORNEL_BOX, objs, background);
 
 	// render
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -93,7 +96,7 @@ int main()
 			{
 				auto u = (j + random_double()) / (image_width - 1);
 				auto v = (i + random_double()) / (image_height - 1);
-				pixel_color += ray_color(cam.get_ray(u, v), objs, max_rebound);
+				pixel_color += ray_color(cam.get_ray(u, v), background, objs, max_rebound);
 			}
 			write_color(std::cout, pixel_color, samples_per_pixel);
 		}
@@ -103,7 +106,28 @@ int main()
 	print_program_spend_time(program_start);
 }
 
-color ray_color(const ray& r, const hittable& obj, int depth)
+color ray_color(const ray& r, const color& background, const hittable& obj, int depth)
+{
+	hit_record rec;
+	if (depth <= 0)
+	{
+		return color(0, 0, 0);
+	}
+
+	if (!obj.hit(r, shadow_acne, infinity, rec))
+	{
+		return background;
+	}
+	ray scattered;
+	color attenuation;
+	if (!rec.mat_ptr->scatter(r, rec, attenuation, scattered))
+	{
+		return rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
+	}
+	return attenuation * ray_color(scattered, background, obj, depth - 1);
+}
+
+color ray_color_old(const ray& r, const hittable& obj, int depth)
 {
 	hit_record rec;
 
@@ -139,27 +163,31 @@ color ray_color(const ray& r, const hittable& obj, int depth)
 		color attenuation;
 		if (rec.mat_ptr->scatter(r, rec, attenuation, scattered))
 		{
-			return attenuation * ray_color(scattered, obj, depth-1);
+			return attenuation * ray_color_old(scattered, obj, depth-1);
 		}
 		// 没有反射说明没有光能从该交点返回到摄像机里，就是全黑的
 		return color(0, 0, 0);
 	}
+	// sky color
 	Vec3 unit_direction = unit_vector(r.direction());
 	auto t = 0.5 * (unit_direction.y() + 1.0);
 	return (1 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
-camera select(const SELECT_WHICH_RUN& s, hittable_list& world)
+camera select(const SELECT_WHICH_RUN& s, hittable_list& world, color& background)
 {
 	point3 lookfrom;
 	point3 lookat;
 	auto vfov = 40.0;
 	auto aperture = 0.0;
 
+	double aspect_ratio_cur = aspect_ratio;
+
 	switch (s)
 	{
 	case SELECT_WHICH_RUN::RANDOM_SCENE:
 		world = random_scene();
+		background = color(0.70, 0.80, 1.00);
 		lookfrom = point3(13, 2, 3);
 		lookat = point3(0, 0, 0);
 		vfov = 20.0;
@@ -167,15 +195,25 @@ camera select(const SELECT_WHICH_RUN& s, hittable_list& world)
 		break;
 	case SELECT_WHICH_RUN::TWO_SPHERES:
 		world = two_spheres();
+		background = color(0.70, 0.80, 1.00);
 		lookfrom = point3(13, 2, 3);
 		lookat = point3(0, 0, 0);
 		vfov = 20.0;
 		break;
 	case SELECT_WHICH_RUN::EARTH_PERLIN_SPHERES:
 		world = earth_perlin_spheres();
+		background = color(0.70, 0.80, 1.00);
 		lookfrom = point3(13, 2, 3);
 		lookat = point3(0, 0, 0);
 		vfov = 35.0;
+		break;
+	case SELECT_WHICH_RUN::CORNEL_BOX:
+		world = cornell_box();
+		background = color(0, 0, 0);
+		aspect_ratio_cur = 1.0;
+		lookfrom = point3(278, 278, -800);
+		lookat = point3(278, 278, 0);
+		vfov = 40.0;
 		break;
 	default:
 		break;
@@ -183,8 +221,27 @@ camera select(const SELECT_WHICH_RUN& s, hittable_list& world)
 
 	Vec3 vup(0, 1, 0);
 	auto dist_to_focus = 10.0;
-	camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
+	camera cam(lookfrom, lookat, vup, vfov, aspect_ratio_cur, aperture, dist_to_focus, 0.0, 1.0);
 	return cam;
+}
+
+inline hittable_list cornell_box()
+{
+	hittable_list objs;
+
+	auto red = std::make_shared<lambertian>(color(.65, .05, .05));
+	auto white = std::make_shared<lambertian>(color(.73, .73, .73));
+	auto green = std::make_shared<lambertian>(color(.12, .45, .15));
+	auto light = std::make_shared<diffuse_light>(color(15, 15, 15));
+
+	objs.add(std::make_shared<yz_rect>(0, 555, 0, 555, 555, green));
+	objs.add(std::make_shared<yz_rect>(0, 555, 0, 555, 0, red));
+	objs.add(std::make_shared<xz_rect>(213, 343, 227, 332, 554, light));
+	objs.add(std::make_shared<xz_rect>(0, 555, 0, 555, 0, white));
+	objs.add(std::make_shared<xz_rect>(0, 555, 0, 555, 555, white));
+	objs.add(std::make_shared<xy_rect>(0, 555, 0, 555, 555, white));
+
+	return objs;
 }
 
 inline hittable_list two_spheres()
