@@ -1,15 +1,13 @@
 #include "const_var.h"
 #include "color.h"
-#include "hittable_list.h"
 #include "sphere.h"
 #include "camera.h"
-#include "material.h"
 #include "moving_sphere.h"
 #include "bvh_node.h"
 #include "texture.h"
 #include "rtw_stb_image.h"
 #include "filesystemUtil.h"
-#include "aarect.h"
+#include "box.h"
 
 #include <iostream>
 #include <chrono>
@@ -181,8 +179,6 @@ camera select(const SELECT_WHICH_RUN& s, hittable_list& world, color& background
 	auto vfov = 40.0;
 	auto aperture = 0.0;
 
-	double aspect_ratio_cur = aspect_ratio;
-
 	switch (s)
 	{
 	case SELECT_WHICH_RUN::RANDOM_SCENE:
@@ -210,7 +206,6 @@ camera select(const SELECT_WHICH_RUN& s, hittable_list& world, color& background
 	case SELECT_WHICH_RUN::CORNEL_BOX:
 		world = cornell_box();
 		background = color(0, 0, 0);
-		aspect_ratio_cur = 1.0;
 		lookfrom = point3(278, 278, -800);
 		lookat = point3(278, 278, 0);
 		vfov = 40.0;
@@ -221,7 +216,7 @@ camera select(const SELECT_WHICH_RUN& s, hittable_list& world, color& background
 
 	Vec3 vup(0, 1, 0);
 	auto dist_to_focus = 10.0;
-	camera cam(lookfrom, lookat, vup, vfov, aspect_ratio_cur, aperture, dist_to_focus, 0.0, 1.0);
+	camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture, dist_to_focus, 0.0, 1.0);
 	return cam;
 }
 
@@ -240,6 +235,16 @@ inline hittable_list cornell_box()
 	objs.add(std::make_shared<xz_rect>(0, 555, 0, 555, 0, white));
 	objs.add(std::make_shared<xz_rect>(0, 555, 0, 555, 555, white));
 	objs.add(std::make_shared<xy_rect>(0, 555, 0, 555, 555, white));
+
+	std::shared_ptr<hittable> box1 = std::make_shared<box>(point3(0.0, 0.0, 0.0), point3(165, 330, 165), white);
+	box1 = std::make_shared<rotate_y>(box1, 15);
+	box1 = std::make_shared<translate>(box1, Vec3(265, 0, 295));
+	objs.add(box1);
+
+	std::shared_ptr<hittable> box2 = std::make_shared<box>(point3(0.0, 0.0, 0.0), point3(165, 165, 165), white);
+	box2 = std::make_shared<rotate_y>(box2, -18);
+	box2 = std::make_shared<translate>(box2, Vec3(130, 0, 65));
+	objs.add(box2);
 
 	return objs;
 }

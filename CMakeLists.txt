@@ -16,7 +16,7 @@ add_executable (LearnRayTracing  "src/common/vec3.cpp" "src/InOneWeekend/main.cp
 	"src/common/sphere.h" "src/common/hittable_list.h" "src/common/const_var.h" "src/common/camera.h" "src/common/vec3.h" 
 	"src/common/color.h" "src/common/material.h" "src/common/moving_sphere.h" "src/common/aabb.h" "src/common/bvh_node.h" 
 	"src/common/texture.h" "src/other/interpolation.h" "src/other/value_noise.h" "src/other/perlin_noise.h" "src/thirdParty/stb_image.h" 
-	"src/thirdParty/rtw_stb_image.h" "src/common/filesystemUtil.h" "src/common/aarect.h")
+	"src/thirdParty/rtw_stb_image.h" "src/common/filesystemUtil.h" "src/common/aarect.h" "src/common/box.h")
 
 target_include_directories(LearnRayTracing
 	PRIVATE
